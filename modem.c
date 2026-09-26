@@ -503,7 +503,7 @@ void modem_do_telnet_negotiate()
                 buf[0] = CMD;
             }
         }
-        else if(rdLen1 = 1)
+        else if(rdLen1 == 1)
             write(fdSerial, &buf[0], 1);
     } while (buf[0] == CMD && rdLen1 == 1);
 end:
