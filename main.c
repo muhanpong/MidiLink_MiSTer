@@ -70,7 +70,7 @@ char                    fsynthSoundFont [150]  = "/media/fat/linux/soundfonts/SC
 char                    MUNTRomPath[150]       = "/media/fat/linux/mt32-rom-data";
 char                    UDPServer [100]        = "";
 char                    mixerControl[20]       = "Master";
-char                    MUNTOptions[30]        = "";
+char                    MUNTOptions[100]       = "";
 char                    FSYNTHOptions[100]     = "";
 char                    USBSerModule[100]      = "";
 
@@ -114,7 +114,7 @@ void killall_softsynth(int delay)
 //
 int start_munt()
 {
-    char buf[200];
+    char buf[400];
     int midiPort = -1;
     set_pcm_volume(muntVolume);
     if(strlen(MUNTOptions) > misc_count_str_chr(MUNTOptions, ' '))

@@ -118,6 +118,14 @@ The MidiLink.INI file:
       MIDILINK_PRIORITY  = -20          --> Sets the task priority of MidiLink
       
       MUNT_OPTIONS       =              --> Optional parameters for MUNT
+                                            -o 1 : CM-32L ROMs only
+                                            -o 2 : MT-32 ROMs only
+                                            (default tries CM-32L first)
+                                            -l 1 : coarse analog emulation
+                                                   (less CPU than -l 2)
+                                            -p N : max partials (default 32,
+                                                   optimized mt32d only)
+                                            -n   : reverb off
 
       MUNT_ROM_PATH      = /media/fat/mt32-rom-data
 

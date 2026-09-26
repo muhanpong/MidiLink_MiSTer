@@ -37,7 +37,7 @@ extern char            MP3Path[500];
 extern char 	       MIDIPath[500];
 extern char            downloadPath[500];
 extern char            uploadPath[100];
-extern char            MUNTOptions[30];
+extern char            MUNTOptions[100];
 extern char            FSYNTHOptions[100];
 extern char            MT32LCDMsg[21];
 extern int             MODEMSOUND;
