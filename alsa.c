@@ -35,7 +35,6 @@ void alsa_send_midi_raw(char * buf, int bufLen)
         if(result == TRUE)
         {
             snd_seq_event_output(seq, &ev);
-            snd_seq_drain_output(seq);
             alsa_reset_seq_event(&ev);
         }
     }
@@ -43,15 +42,23 @@ void alsa_send_midi_raw(char * buf, int bufLen)
     int sent = 0;
     while(sent < bufLen)
     {
-        sent += snd_midi_event_encode(parser, &buf[sent], bufLen - sent, &ev);
+        long used = snd_midi_event_encode(parser, &buf[sent], bufLen - sent, &ev);
+        if(used <= 0)   // encoder error - bail out instead of looping forever
+        {
+            snd_midi_event_reset_encode(parser);
+            alsa_reset_seq_event(&ev);
+            break;
+        }
+        sent += used;
         if(ev.type !=  SND_SEQ_EVENT_NONE)
         {
             snd_seq_event_output(seq, &ev);
-            snd_seq_drain_output(seq);
             alsa_reset_seq_event(&ev);
         }
     }
 #endif
+    // one syscall per read() buffer instead of one per MIDI event
+    snd_seq_drain_output(seq);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
