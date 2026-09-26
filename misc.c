@@ -978,4 +978,16 @@ void misc_make_file(const char * filename, const char * data)
         fclose(file);
 }
 
-
+///////////////////////////////////////////////////////////////////////////////////////
+//
+// void misc_read_error_backoff(int err)
+//
+// Call after a failed read() in an endless I/O loop. A dead device or socket
+// returns errors immediately, which would otherwise spin the HPS CPU at 100%.
+//
+void misc_read_error_backoff(int err)
+{
+    if (err == EINTR || err == EAGAIN || err == EWOULDBLOCK)
+        return;
+    sleep(1);
+}

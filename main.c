@@ -282,6 +282,8 @@ void * udpsock_thread_function (void * x)
             write(fdSerial, buf, rdLen);
             show_debug_buf("USOCK IN ", buf, rdLen);
         }
+        else if (rdLen < 0)
+            misc_read_error_backoff(errno);
     } while (TRUE);
 }
 
@@ -301,6 +303,8 @@ void * udpsock_thread_function_ext (void * x)
         {
             write_alsa_packet(buf, rdLen);
         }
+        else if (rdLen < 0)
+            misc_read_error_backoff(errno);
     } while (TRUE);
 }
 
@@ -324,6 +328,7 @@ void * midi_thread_function (void * x)
         else
         {
             misc_print(1, "ERROR: midi_thread_function() reading %s --> %d : %s \n", midiDevice, rdLen, strerror(errno));
+            misc_read_error_backoff(rdLen < 0 ? errno : 0);
         }
     } while (TRUE);
 }
@@ -350,12 +355,14 @@ void * midiINin_thread_function (void * x)
                 fdMidiIN = open(midiINDevice, O_RDONLY);
             }
         }
-        else
+        else if (rdLen > 0)
         {
             write(fdSerial, buf, rdLen);
             write(fdMidi, buf, rdLen);
             show_debug_buf("MIDI1 IN ", buf, rdLen);
         }
+        else
+            misc_read_error_backoff(0);
     } while (TRUE);
 }
 
@@ -379,6 +386,7 @@ void * serial_thread_function (void * x)
         else
         {
             misc_print(1, "ERROR: serial_thread_function() reading %s --> %d : %s \n", serialDeviceUSB, rdLen, strerror(errno));
+            misc_read_error_backoff(rdLen < 0 ? errno : 0);
         }
     } while (TRUE);
 }
@@ -697,7 +705,10 @@ int main(int argc, char *argv[])
                     write_alsa_packet(buf, rdLen);
                 }
                 else if (rdLen < 0)
+                {
                     misc_print(0, "ERROR: from read --> %d: %s\n", rdLen, strerror(errno));
+                    misc_read_error_backoff(errno);
+                }
             } while (TRUE);
         }
         else
@@ -943,7 +954,10 @@ int main(int argc, char *argv[])
             if (rdLen > 0)
                 write_midi_packet(buf, rdLen);
             else if (rdLen < 0)
+            {
                 misc_print(1, "ERROR: (USBMIDI) from read: %d: %s\n", rdLen, strerror(errno));
+                misc_read_error_backoff(errno);
+            }
         } while (TRUE);
         break;
     case ModeSERMIDI:
@@ -965,7 +979,10 @@ int main(int argc, char *argv[])
                 write(fdSerialUSB, buf, rdLen);
             }
             else if (rdLen < 0)
+            {
                 misc_print(1, "ERROR: (USBSER) from read: %d: %s\n", rdLen, strerror(errno));
+                misc_read_error_backoff(errno);
+            }
         } while (TRUE);
         break;
     case ModeUDPMUNT:
@@ -1000,7 +1017,10 @@ int main(int argc, char *argv[])
                     write_socket_packet(socket_out, buf, rdLen);
             }
             else if (rdLen < 0)
+            {
                 misc_print(1, "ERROR: (UDP) from read: %d: %s\n", rdLen, strerror(errno));
+                misc_read_error_backoff(errno);
+            }
         } while (TRUE);
         break;
     case ModeTCP :
@@ -1041,7 +1061,10 @@ int main(int argc, char *argv[])
                 }
             }
             else if (rdLen < 0)
+            {
                 misc_print(1, "ERROR: (TCP) from read: %d: %s\n", rdLen, strerror(errno));
+                misc_read_error_backoff(errno);
+            }
         } while (TRUE);
         break;
     }
