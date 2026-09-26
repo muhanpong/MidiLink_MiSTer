@@ -41,6 +41,7 @@ char * misc_hayes_ATQ_to_str(int dtr);
 char * misc_get_clrScr();
 void   misc_make_file(const char * filename, const char * data);
 int    misc_get_tmp_uartspeed();
+void   misc_read_error_backoff(int err);
 
 //int    misc_get_midi_port(char * descr);
 #define TRUE 1

@@ -334,8 +334,9 @@ void * modem_tcplst_thread_function (void * x)
                         write(fdSerial, buf, rdLen);
                         show_debug_buf("TSERV IN", buf, rdLen);
                     }
-                    else if (rdLen == 0)
-                    {
+                    else if (rdLen == 0 ||
+                             (errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR))
+                    {   // EOF or hard error (e.g. ECONNRESET) - retrying would spin the CPU
                         if(socket_in != -1)
                             close(socket_in);
                         socket_in = -1;
@@ -503,7 +504,7 @@ void modem_do_telnet_negotiate()
                 buf[0] = CMD;
             }
         }
-        else if(rdLen1 = 1)
+        else if(rdLen1 == 1)
             write(fdSerial, &buf[0], 1);
     } while (buf[0] == CMD && rdLen1 == 1);
 end:

@@ -134,6 +134,10 @@ The MidiLink.INI file:
       FSYNTH_SOUNDFONT   = /media/fat/SOUNDFONT/default.sf2
                                         --> This is the soundfont For 
                                             FluidSynth.
+      FSYNTH_OPTIONS     = -R 0 -C 0    --> Optional parameters for FluidSynth
+                                            (e.g. reverb/chorus off, 
+                                            -o synth.polyphony=64 or 
+                                            -r 32000 to lower CPU load)
       MIXER_CONTROL      = Master       --> Name of Mixer control (leave
                                             Master!)
 

@@ -11,6 +11,18 @@ kill_all() {
 	killall -KILL fluidsynth mpg123 mt32d 2>/dev/null
 }
 
+# Back off when the child exits right after starting (missing device, bad
+# config, ...) so a failing service doesn't respawn every second forever.
+delay=1
+respawn_wait() {
+	if [ $((SECONDS - started)) -lt 10 ]; then
+		delay=$((delay < 16 ? delay * 2 : 30))
+	else
+		delay=1
+	fi
+	sleep $delay
+}
+
 conn_speed=115200
 [ -f /tmp/UART_SPEED ] && conn_speed=$(cat /tmp/UART_SPEED)
 
@@ -40,6 +52,7 @@ if [ "$1" == "1" ]; then
 					cat /media/fat/linux/ppp_options >>/tmp/ppp_options
 
 					echo 1 > /proc/sys/net/ipv4/ip_forward
+					started=$SECONDS
 					taskset 1 pppd $conn_speed file /tmp/ppp_options
 					status=$?
 					case $status in
@@ -53,7 +66,7 @@ if [ "$1" == "1" ]; then
 				[ ! -f /tmp/uartmode1 ] && exit 0
 
 				echo respawn pppd
-				sleep 1
+				respawn_wait
 			done
 		) &
 	fi
@@ -64,13 +77,14 @@ elif [ "$1" == "2" ]; then
 		(
 			while true
 			do
+				started=$SECONDS
 				taskset 1 agetty $conn_speed ttyS1 -h &
 				wait $!
 
 				[ ! -f /tmp/uartmode2 ] && exit 0
 
 				echo respawn console
-				sleep 1
+				respawn_wait
 			done 
 		) &
 	fi
@@ -81,13 +95,14 @@ elif [ "$1" == "3" ]; then
 		(
 			while true
 			do
+				started=$SECONDS
 				taskset 1 midilink MENU QUIET &
 				wait $!
 			
 				[ ! -f /tmp/uartmode3 ] && exit 0
 			
 				echo respawn midilink
-				sleep 1
+				respawn_wait
 			done 
 		) &
 	fi
@@ -98,13 +113,14 @@ elif [ "$1" == "4" ]; then
 		(
 			while true
 			do
+				started=$SECONDS
 				taskset 1 midilink MENU QUIET &
 				wait $!
 
 				[ ! -f /tmp/uartmode4 ] && exit 0
 
 				echo respawn midilink
-				sleep 1
+				respawn_wait
 			done 
 		) &
 	fi
@@ -115,13 +131,14 @@ elif [ "$1" == "5" ]; then
 		(
 			while true
 			do
+				started=$SECONDS
 				taskset 1 midilink UDP QUIET BAUD $conn_speed 
 				wait $!
 
 				[ ! -f /tmp/uartmode5 ] && exit 0
 
 				echo respawn midilink
-				sleep 1
+				respawn_wait
 			done 
 		) &
 	fi
@@ -133,13 +150,14 @@ elif [ "$1" == "6" ]; then
 			(
 				while true
 				do
+					started=$SECONDS
 					RUST_LOG=info taskset 1 /media/fat/snid > /tmp/snid.log 2>&1
 					wait $!
 
 					[ ! -f /tmp/uartmode6 ] && exit 0
 
 					echo respawn snid
-					sleep 1
+					respawn_wait
 				done 
 			) &
 		fi

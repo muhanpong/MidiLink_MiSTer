@@ -16,6 +16,7 @@
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
+#include <sys/wait.h>
 #include <netinet/in.h>
 #include <net/if.h>
 #include "misc.h"
@@ -453,7 +454,8 @@ int misc_do_pipe(int fdSerial,  char * path, char * command,
     int pipefd[2];
     if(pipe (pipefd) != -1)
     {
-        if (fork() == 0)
+        pid_t pid = fork();
+        if (pid == 0)
         {
             // child
             close(pipefd[0]);                // close reading end in the child
@@ -477,6 +479,8 @@ int misc_do_pipe(int fdSerial,  char * path, char * command,
                 if(rdLen > 0)
                     write(fdSerial, rdBuf, rdLen);
             } while(rdLen > 0);
+            close(pipefd[0]);
+            waitpid(pid, NULL, 0);           // reap the child (no zombies)
             return TRUE;
         }
     }
@@ -978,4 +982,16 @@ void misc_make_file(const char * filename, const char * data)
         fclose(file);
 }
 
-
+///////////////////////////////////////////////////////////////////////////////////////
+//
+// void misc_read_error_backoff(int err)
+//
+// Call after a failed read() in an endless I/O loop. A dead device or socket
+// returns errors immediately, which would otherwise spin the HPS CPU at 100%.
+//
+void misc_read_error_backoff(int err)
+{
+    if (err == EINTR || err == EAGAIN || err == EWOULDBLOCK)
+        return;
+    sleep(1);
+}

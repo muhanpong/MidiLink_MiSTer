@@ -71,6 +71,7 @@ char                    MUNTRomPath[150]       = "/media/fat/linux/mt32-rom-data
 char                    UDPServer [100]        = "";
 char                    mixerControl[20]       = "Master";
 char                    MUNTOptions[30]        = "";
+char                    FSYNTHOptions[100]     = "";
 char                    USBSerModule[100]      = "";
 
 static pthread_t        midiInThread;
@@ -143,15 +144,17 @@ int start_munt()
 //
 int start_fsynth()
 {
-    char buf[256];
+    char buf[400];
     int midiPort = -1;
     misc_make_file(tmpSoundfont, fsynthSoundFont); 
     set_pcm_volume(fsynthVolume);
     misc_print(0, "Starting --> fluidsynth");
+    if (strlen(FSYNTHOptions) > misc_count_str_chr(FSYNTHOptions, ' '))
+        misc_print(0, " : Options --> '%s'", FSYNTHOptions);
     if (CPUMASK != FSYNTHCPUMask)
             misc_print(0, " : CPUMASK = %d", FSYNTHCPUMask);
     misc_print(0, "\n"); 
-    sprintf(buf, "taskset %d fluidsynth -is -a alsa -m alsa_seq %s &", FSYNTHCPUMask, fsynthSoundFont);
+    sprintf(buf, "taskset %d fluidsynth -is -a alsa -m alsa_seq %s %s &", FSYNTHCPUMask, FSYNTHOptions, fsynthSoundFont);
     system(buf);
     int loop = 0;
     do
@@ -171,18 +174,25 @@ int start_fsynth()
 //
 void show_debug_buf(char * descr, char * buf, int bufLen)
 {
+    static const char hex[] = "0123456789abcdef";
     static struct timeval start = {0, 0};
     struct timeval time;
     if(MIDI_DEBUG)
     {
+        char line[256 * 3 + 1];
+        char * p = line;
+        int len = bufLen;
         if(start.tv_sec == 0)
             gettimeofday(&start, NULL);
         gettimeofday(&time, NULL);
-        misc_print(2, "[%08ld] %s[%02d] -->", misc_get_timeval_diff (&start, &time), descr, bufLen);
-        for (unsigned char * byte = buf; bufLen-- > 0; byte++)
-            //  misc_print(2, " %02x '%c'", *byte, *byte);
-            misc_print(2, " %02x", *byte);
-        misc_print(2, "\n");
+        for (unsigned char * byte = buf; bufLen-- > 0 && p < line + sizeof(line) - 3; byte++)
+        {
+            *p++ = ' ';
+            *p++ = hex[*byte >> 4];
+            *p++ = hex[*byte & 0x0f];
+        }
+        *p = 0x00;
+        misc_print(2, "[%08ld] %s[%02d] -->%s\n", misc_get_timeval_diff (&start, &time), descr, len, line);
     }
 }
 
@@ -282,6 +292,8 @@ void * udpsock_thread_function (void * x)
             write(fdSerial, buf, rdLen);
             show_debug_buf("USOCK IN ", buf, rdLen);
         }
+        else if (rdLen < 0)
+            misc_read_error_backoff(errno);
     } while (TRUE);
 }
 
@@ -301,6 +313,8 @@ void * udpsock_thread_function_ext (void * x)
         {
             write_alsa_packet(buf, rdLen);
         }
+        else if (rdLen < 0)
+            misc_read_error_backoff(errno);
     } while (TRUE);
 }
 
@@ -324,6 +338,7 @@ void * midi_thread_function (void * x)
         else
         {
             misc_print(1, "ERROR: midi_thread_function() reading %s --> %d : %s \n", midiDevice, rdLen, strerror(errno));
+            misc_read_error_backoff(rdLen < 0 ? errno : 0);
         }
     } while (TRUE);
 }
@@ -350,12 +365,14 @@ void * midiINin_thread_function (void * x)
                 fdMidiIN = open(midiINDevice, O_RDONLY);
             }
         }
-        else
+        else if (rdLen > 0)
         {
             write(fdSerial, buf, rdLen);
             write(fdMidi, buf, rdLen);
             show_debug_buf("MIDI1 IN ", buf, rdLen);
         }
+        else
+            misc_read_error_backoff(0);
     } while (TRUE);
 }
 
@@ -379,6 +396,7 @@ void * serial_thread_function (void * x)
         else
         {
             misc_print(1, "ERROR: serial_thread_function() reading %s --> %d : %s \n", serialDeviceUSB, rdLen, strerror(errno));
+            misc_read_error_backoff(rdLen < 0 ? errno : 0);
         }
     } while (TRUE);
 }
@@ -697,7 +715,10 @@ int main(int argc, char *argv[])
                     write_alsa_packet(buf, rdLen);
                 }
                 else if (rdLen < 0)
+                {
                     misc_print(0, "ERROR: from read --> %d: %s\n", rdLen, strerror(errno));
+                    misc_read_error_backoff(errno);
+                }
             } while (TRUE);
         }
         else
@@ -943,7 +964,10 @@ int main(int argc, char *argv[])
             if (rdLen > 0)
                 write_midi_packet(buf, rdLen);
             else if (rdLen < 0)
+            {
                 misc_print(1, "ERROR: (USBMIDI) from read: %d: %s\n", rdLen, strerror(errno));
+                misc_read_error_backoff(errno);
+            }
         } while (TRUE);
         break;
     case ModeSERMIDI:
@@ -965,17 +989,17 @@ int main(int argc, char *argv[])
                 write(fdSerialUSB, buf, rdLen);
             }
             else if (rdLen < 0)
+            {
                 misc_print(1, "ERROR: (USBSER) from read: %d: %s\n", rdLen, strerror(errno));
+                misc_read_error_backoff(errno);
+            }
         } while (TRUE);
         break;
     case ModeUDPMUNT:
     case ModeUDPMUNTGM:
     case ModeUDPFSYNTH:
         misc_print(0, "Starting --> UDP Synth loop :)\n");
-        do
-        {
-            sleep(1);
-        } while (TRUE);
+        pthread_join(socketInThread, NULL);
         break;
     case ModeUDP:
         //only send all-notes-off if UDP is being used with MIDI and not game
@@ -1000,7 +1024,10 @@ int main(int argc, char *argv[])
                     write_socket_packet(socket_out, buf, rdLen);
             }
             else if (rdLen < 0)
+            {
                 misc_print(1, "ERROR: (UDP) from read: %d: %s\n", rdLen, strerror(errno));
+                misc_read_error_backoff(errno);
+            }
         } while (TRUE);
         break;
     case ModeTCP :
@@ -1041,7 +1068,10 @@ int main(int argc, char *argv[])
                 }
             }
             else if (rdLen < 0)
+            {
                 misc_print(1, "ERROR: (TCP) from read: %d: %s\n", rdLen, strerror(errno));
+                misc_read_error_backoff(errno);
+            }
         } while (TRUE);
         break;
     }
