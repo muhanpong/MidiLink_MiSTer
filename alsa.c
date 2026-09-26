@@ -23,6 +23,9 @@ void alsa_reset_seq_event(snd_seq_event_t * ev)
 //
 // void alsa_send_midi_raw(char * buf, int bufLen)
 //
+// Note: the encoder is deliberately NOT reset after each event - that would
+// drop MIDI running status, so e.g. a chord sent as 90 3C 64 40 64 43 64
+// would only play its first note.
 void alsa_send_midi_raw(char * buf, int bufLen)
 {
 #ifdef ALSA_ENCODE_BYTE
@@ -33,7 +36,6 @@ void alsa_send_midi_raw(char * buf, int bufLen)
         {
             snd_seq_event_output(seq, &ev);
             alsa_reset_seq_event(&ev);
-            snd_midi_event_reset_encode(parser);
         }
     }
 #else
@@ -52,7 +54,6 @@ void alsa_send_midi_raw(char * buf, int bufLen)
         {
             snd_seq_event_output(seq, &ev);
             alsa_reset_seq_event(&ev);
-            snd_midi_event_reset_encode(parser);
         }
     }
 #endif
