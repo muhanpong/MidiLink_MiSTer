@@ -37,7 +37,8 @@ extern char            MP3Path[500];
 extern char 	       MIDIPath[500];
 extern char            downloadPath[500];
 extern char            uploadPath[100];
-extern char            MUNTOptions[30];
+extern char            MUNTOptions[100];
+extern char            FSYNTHOptions[100];
 extern char            MT32LCDMsg[21];
 extern int             MODEMSOUND;
 extern char            modemConnectSndWAV[50];
@@ -270,6 +271,10 @@ char ini_process_key_value_pair(char * key, char * value)
     {
         ini_str(key, value, MUNTOptions, sizeof(MUNTOptions));
     }
+    else if (strcmp("FSYNTH_OPTIONS", key) == 0)
+    {
+        ini_str(key, value, FSYNTHOptions, sizeof(FSYNTHOptions));
+    }
     else if (strcmp("MT32_LCD_MSG", key) == 0)
     {
         ini_str(key, value, MT32LCDMsg, sizeof(MT32LCDMsg));
@@ -317,6 +322,7 @@ void ini_print_settings(int p)
         misc_print(p, "  - MUNT_VOLUME        --> Default (don't set)\n");
     misc_print(p, "  - MUNT_CPU_MASK      --> %d\n",MUNTCPUMask);
     misc_print(p, "  - FSYNTH_CPU_MASK    --> %d\n",FSYNTHCPUMask);  
+    misc_print(p, "  - FSYNTH_OPTIONS     --> '%s'\n", FSYNTHOptions);
     if(fsynthVolume != -1)
         misc_print(p, "  - FSYNTH_VOLUME      --> %d%c\n", fsynthVolume, '%');
     else

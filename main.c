@@ -70,7 +70,8 @@ char                    fsynthSoundFont [150]  = "/media/fat/linux/soundfonts/SC
 char                    MUNTRomPath[150]       = "/media/fat/linux/mt32-rom-data";
 char                    UDPServer [100]        = "";
 char                    mixerControl[20]       = "Master";
-char                    MUNTOptions[30]        = "";
+char                    MUNTOptions[100]       = "";
+char                    FSYNTHOptions[100]     = "";
 char                    USBSerModule[100]      = "";
 
 static pthread_t        midiInThread;
@@ -113,7 +114,7 @@ void killall_softsynth(int delay)
 //
 int start_munt()
 {
-    char buf[200];
+    char buf[400];
     int midiPort = -1;
     set_pcm_volume(muntVolume);
     if(strlen(MUNTOptions) > misc_count_str_chr(MUNTOptions, ' '))
@@ -143,15 +144,17 @@ int start_munt()
 //
 int start_fsynth()
 {
-    char buf[256];
+    char buf[400];
     int midiPort = -1;
     misc_make_file(tmpSoundfont, fsynthSoundFont); 
     set_pcm_volume(fsynthVolume);
     misc_print(0, "Starting --> fluidsynth");
+    if (strlen(FSYNTHOptions) > misc_count_str_chr(FSYNTHOptions, ' '))
+        misc_print(0, " : Options --> '%s'", FSYNTHOptions);
     if (CPUMASK != FSYNTHCPUMask)
             misc_print(0, " : CPUMASK = %d", FSYNTHCPUMask);
     misc_print(0, "\n"); 
-    sprintf(buf, "taskset %d fluidsynth -is -a alsa -m alsa_seq %s &", FSYNTHCPUMask, fsynthSoundFont);
+    sprintf(buf, "taskset %d fluidsynth -is -a alsa -m alsa_seq %s %s &", FSYNTHCPUMask, FSYNTHOptions, fsynthSoundFont);
     system(buf);
     int loop = 0;
     do

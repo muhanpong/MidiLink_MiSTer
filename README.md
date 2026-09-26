@@ -118,6 +118,11 @@ The MidiLink.INI file:
       MIDILINK_PRIORITY  = -20          --> Sets the task priority of MidiLink
       
       MUNT_OPTIONS       =              --> Optional parameters for MUNT
+                                            -o 1 : CM-32L ROMs only
+                                            -o 2 : MT-32 ROMs only
+                                            (default tries CM-32L first)
+                                            -l 1 : coarse analog emulation
+                                            -n   : reverb off
 
       MUNT_ROM_PATH      = /media/fat/mt32-rom-data
 
@@ -134,6 +139,10 @@ The MidiLink.INI file:
       FSYNTH_SOUNDFONT   = /media/fat/SOUNDFONT/default.sf2
                                         --> This is the soundfont For 
                                             FluidSynth.
+      FSYNTH_OPTIONS     = -R 0 -C 0    --> Optional parameters for FluidSynth
+                                            (e.g. reverb/chorus off, 
+                                            -o synth.polyphony=64 or 
+                                            -r 32000 to lower CPU load)
       MIXER_CONTROL      = Master       --> Name of Mixer control (leave
                                             Master!)
 
